@@ -19,10 +19,9 @@ export function useModelDatas(location) {
 
   useEffect(() => {
     async function fetchData() {
-      let urls = Array.from(
-        { length: 8 },
-        (x, i) => `/data/${location}.${i}.json`,
-      );
+      const dataIndexes = [0, 1, 2, 7];
+      const urls = dataIndexes.map(i => `/data/${location}.${i}.json`);
+
       let loadedModelDatas = await fetchAll(urls);
       setModelDatas(loadedModelDatas);
     }

@@ -116,7 +116,7 @@ function ModelPage() {
       }),*/
   };
   let distancingPoorEnforcement = {
-    now: new Model(modelDatas[7], {
+    now: new Model(modelDatas[3], {
       intervention: 'Social distancing',
       durationDays: 90,
       r0: 1.7,
