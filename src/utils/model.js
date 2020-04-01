@@ -40,7 +40,7 @@ const initialData = {
 };
 
 async function fetchSummary(setModelDatas, location) {
-  const summaryUrl = `/data/${location.toUpperCase()}.summary.json`;
+  const summaryUrl = `/data/summary/${location.toUpperCase()}.summary.json`;
   try {
     const summary = await fetchAll([summaryUrl]);
     setModelDatas(state => {
@@ -63,7 +63,7 @@ async function fetchData(setModelDatas, location, county = null) {
     let fipsCode =
       county && county.full_fips_code ? county.full_fips_code : null;
     const stateUrl = `/data/${location}.${i}.json`;
-    const countyUrl = `/data/${location.toUpperCase()}.${fipsCode}.${i}.json`;
+    const countyUrl = `/data/county/${location.toUpperCase()}.${fipsCode}.${i}.json`;
     return county ? countyUrl : stateUrl;
   });
   try {
