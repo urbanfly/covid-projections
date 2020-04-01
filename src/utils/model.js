@@ -41,13 +41,15 @@ const initialData = {
 
 async function fetchSummary(setModelDatas, location) {
   const summaryUrl = `/data/${location.toUpperCase()}.summary.json`;
-  const summary = await fetchAll([summaryUrl]);
-  setModelDatas(state => {
-    return {
-      ...state,
-      summary: summary[0],
-    };
-  });
+  try {
+    const summary = await fetchAll([summaryUrl]);
+    setModelDatas(state => {
+      return {
+        ...state,
+        summary: summary[0],
+      };
+    });
+  } catch (err) {}
 }
 
 async function fetchData(setModelDatas, location, county = null) {
