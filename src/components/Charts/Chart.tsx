@@ -2,10 +2,11 @@ import React from 'react';
 import Highcharts from 'highcharts';
 import HighchartsReact from 'highcharts-react-official';
 import HighchartsMore from 'highcharts/highcharts-more';
+import HighchartBrokenAxis from 'highcharts/modules/broken-axis';
 import HighchartAnnotations from 'highcharts/modules/annotations';
 import 'highcharts/css/highcharts.css';
 
-// Required for the area range chart and annotations
+HighchartBrokenAxis(Highcharts);
 HighchartAnnotations(Highcharts);
 HighchartsMore(Highcharts);
 

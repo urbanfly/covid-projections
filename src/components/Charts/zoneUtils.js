@@ -1,3 +1,4 @@
+import _ from 'lodash';
 import {
   baseOptions,
   currentValueAnnotation,
@@ -83,11 +84,34 @@ export const optionsPositiveTests = (data, endDate) => {
   const { x, y } = lastValidPoint(data);
   const [minY, maxY] = [0, getMaxY(data)];
   const [minYAxis, maxYAxis] = getYAxisLimits(minY, maxY, zones);
-  return {
+  const options = {
     ...baseOptions,
     annotations: [
       currentValueAnnotation(x, y, y && formatPercent(y)),
       ...zoneAnnotations(endDate, minYAxis, maxYAxis, y, zones),
+      {
+        shapes: [
+          {
+            fill: 'none',
+            stroke: 'red',
+            type: 'path',
+            points: [
+              {
+                x: _.min(data.map(d => d.x)),
+                y: 0.15,
+                xAxis: 0,
+                yAxis: 0,
+              },
+              {
+                x,
+                y: 0.15,
+                xAxis: 0,
+                yAxis: 0,
+              },
+            ],
+          },
+        ],
+      },
     ],
     series: [
       {
@@ -112,9 +136,23 @@ export const optionsPositiveTests = (data, endDate) => {
           return formatPercent(this.value);
         },
       },
-      tickPositions: getTickPositions(minYAxis, maxYAxis, zones),
+      breaks: [
+        {
+          from: 0.15,
+          to: 0.7,
+          breakSize: 0.05,
+        },
+      ],
+      // tickPositions: getTickPositions(minYAxis, maxYAxis, zones),
+      tickPositions: [
+        minYAxis,
+        maxY,
+        ...zones.map(z => z.value).filter(d => !!d),
+      ].sort(),
     },
   };
+  console.log({ options });
+  return options;
 };
 
 export const optionsHospitalUsage = (data, endDate) => {
