@@ -9,7 +9,7 @@
 import fs from 'fs-extra';
 import _ from 'lodash';
 import path from 'path';
-import Pageres from 'pageres';
+import puppeteer from 'puppeteer';
 import urlJoin from 'url-join';
 import {
   fetchAllStateProjections,
@@ -19,43 +19,48 @@ import { Projections } from '../../src/common/models/Projections';
 import { Metric, ALL_METRICS } from '../../src/common/metric';
 import os from 'os-utils';
 
-const BASE_URL = 'http://localhost:3000/internal/share-image';
+const ROOT_URL = 'http://localhost:3000/';
+const URL_PREFIX = '/internal/share-image';
 const CSS_SELECTOR = '.screenshot';
 const OUTPUT_DIR = path.join(__dirname, 'output');
 
-// How many screenshots to send to pageres at once.
-const PAGERES_BATCH_SIZE = 50;
-// How long (seconds) to wait for the expected div to render in the browser.
-const PAGERES_TIMEOUT = 90;
-// How many times to retry after any pageres failure.
-const PAGERES_RETRIES = 2;
+// How many browser tabs to create and use for screenshots. 4 was optimal on my
+// laptop. TODO: Tune on Github.
+const TABS = 4;
+// How long (ms) to wait for the expected div to render in the browser.
+const TIMEOUT = 90 * 1000;
+// How many times to retry after any failure.
+const RETRIES = 2;
 
 const SHARE_OUTPUT_SIZE = '1200x630';
 const EXPORT_OUTPUT_SIZE = '2400x1350';
+
+// The export image is 2400x1350.  Make sure the browser is plenty bigger.
+const BROWSER_WIDTH = 2800;
+const BROWSER_HEIGHT = 1575;
 
 const BLACKLISTED_COUNTIES = [
   '11001', // DC - We treat it as a state, not a county.
 ];
 
+interface Screenshot {
+  url: string;
+  filename: string;
+  outputSize: string;
+}
+
+let screenshotsDone = 0;
+
 (async () => {
   await fs.ensureDir(OUTPUT_DIR);
   await fs.emptyDir(OUTPUT_DIR);
-
-  // Pageres adds process exit listeners for each chrome instance it launches,
-  // and these can exceed the node's memory leak detection threshold and trigger
-  // noisy "Possible EventEmitter memory leak detected." messages.
-  process.setMaxListeners(100);
 
   console.log('Fetching projections...');
   const allStatesProjections = await fetchAllStateProjections();
   const allCountiesProjections = await fetchAllCountyProjections();
   console.log('Fetch complete.');
 
-  let screenshots = [] as Array<{
-    url: string;
-    filename: string;
-    outputSize: string;
-  }>;
+  let screenshots = [] as Screenshot[];
 
   // Homepage share image.
   screenshots.push({
@@ -64,58 +69,28 @@ const BLACKLISTED_COUNTIES = [
     outputSize: SHARE_OUTPUT_SIZE,
   });
 
-  function addScreenshotsForLocation(
-    relativeUrl: string,
-    projections: Projections,
-  ) {
-    // Overall share image.
-    screenshots.push({
-      url: relativeUrl,
-      filename: relativeUrl,
-      outputSize: SHARE_OUTPUT_SIZE,
-    });
-
-    // Chart images.
-    for (const metric of ALL_METRICS) {
-      if (
-        metric === Metric.FUTURE_PROJECTIONS ||
-        projections.getMetricValue(metric) !== null
-      ) {
-        // TODO(michael): Unify the generation of these URLs somehow to make
-        // sure we don't end up with accidental mismatches, etc.
-        const shareUrl = urlJoin(relativeUrl, '/chart/', '' + metric);
-        const exportUrl = urlJoin(shareUrl, '/export');
-        screenshots.push({
-          url: shareUrl,
-          filename: shareUrl,
-          outputSize: SHARE_OUTPUT_SIZE,
-        });
-        screenshots.push({
-          url: exportUrl,
-          filename: exportUrl,
-          outputSize: EXPORT_OUTPUT_SIZE,
-        });
-      }
-    }
-  }
-
   for (const stateProjections of allStatesProjections) {
     const state = stateProjections.stateCode.toLowerCase();
-    addScreenshotsForLocation(`/states/${state}`, stateProjections);
+    addScreenshotsForLocation(
+      screenshots,
+      `/states/${state}`,
+      stateProjections,
+    );
   }
 
   for (const countyProjections of allCountiesProjections) {
     const fips = countyProjections.primary.fips;
     if (!BLACKLISTED_COUNTIES.includes(fips)) {
-      addScreenshotsForLocation(`/counties/${fips}`, countyProjections);
+      addScreenshotsForLocation(
+        screenshots,
+        `/counties/${fips}`,
+        countyProjections,
+      );
     }
   }
 
   // For testing.
   // screenshots = screenshots.slice(0, 43);
-
-  const batches = _.chunk(screenshots, PAGERES_BATCH_SIZE);
-  let screenshotsDone = 0;
 
   const start = Date.now();
   setInterval(() => {
@@ -135,37 +110,21 @@ const BLACKLISTED_COUNTIES = [
     });
   }, 60000);
 
-  for (const batch of batches) {
-    let triesLeft = PAGERES_RETRIES + 1;
-    let success = false;
-    while (!success && triesLeft > 0) {
-      console.log(`Screenshotting: ${batch.map(s => s.url).join(', ')}`);
-      const pageres = new Pageres({ timeout: PAGERES_TIMEOUT }).dest(
-        OUTPUT_DIR,
-      );
-      for (const s of batch) {
-        await fs.ensureDir(path.join(OUTPUT_DIR, s.filename, '..'));
-        pageres.src(urlJoin(BASE_URL, s.url), [s.outputSize], {
-          selector: CSS_SELECTOR,
-          filename: s.filename,
-        });
-      }
+  const browser = await puppeteer.launch({
+    defaultViewport: {
+      width: BROWSER_WIDTH,
+      height: BROWSER_HEIGHT,
+    },
+    headless: true, // Can set to false to help with debugging.
+  });
 
-      try {
-        await pageres.run();
-        success = true;
-        screenshotsDone += batch.length;
-      } catch (e) {
-        triesLeft--;
-        if (triesLeft > 0) {
-          console.error(e);
-          console.error('Retries left: ', triesLeft);
-        } else {
-          throw e;
-        }
-      }
-    }
+  const promises = [];
+  for (let i = 0; i < TABS; i++) {
+    const tab = await browser.newPage();
+    promises.push(takeScreenshots(screenshots, tab));
   }
+
+  await Promise.all(promises);
 
   console.log('Completed successfully.');
   process.exit(0);
@@ -173,3 +132,94 @@ const BLACKLISTED_COUNTIES = [
   console.error(err);
   process.exit(1);
 });
+
+function addScreenshotsForLocation(
+  screenshots: Screenshot[],
+  relativeUrl: string,
+  projections: Projections,
+) {
+  // Overall share image.
+  screenshots.push({
+    url: relativeUrl,
+    filename: relativeUrl,
+    outputSize: SHARE_OUTPUT_SIZE,
+  });
+
+  // Chart images.
+  for (const metric of ALL_METRICS) {
+    if (
+      metric === Metric.FUTURE_PROJECTIONS ||
+      projections.getMetricValue(metric) !== null
+    ) {
+      // TODO(michael): Unify the generation of these URLs somehow to make
+      // sure we don't end up with accidental mismatches, etc.
+      const shareUrl = urlJoin(relativeUrl, '/chart/', '' + metric);
+      const exportUrl = urlJoin(shareUrl, '/export');
+      screenshots.push({
+        url: shareUrl,
+        filename: shareUrl,
+        outputSize: SHARE_OUTPUT_SIZE,
+      });
+      screenshots.push({
+        url: exportUrl,
+        filename: exportUrl,
+        outputSize: EXPORT_OUTPUT_SIZE,
+      });
+    }
+  }
+}
+
+async function takeScreenshots(
+  screenshots: Screenshot[],
+  tab: puppeteer.Page,
+): Promise<void> {
+  const next = screenshots.pop();
+  if (!next) {
+    return;
+  }
+  console.log(`Screenshotting ${next.url} [${screenshots.length} left]`);
+  if (!tab.url().includes('/internal/share-image')) {
+    const url = urlJoin(ROOT_URL, URL_PREFIX, next.url);
+    await tab.goto(url);
+  } else {
+    const url = urlJoin(URL_PREFIX, next.url);
+    const windowHandle = await tab.evaluateHandle('window');
+    await tab.evaluate(
+      (window, url) => {
+        window.reactHistory.replace(url);
+      },
+      windowHandle,
+      url,
+    );
+  }
+  const element = await tab.waitForSelector(CSS_SELECTOR, {
+    timeout: TIMEOUT,
+  });
+  if (!element) {
+    // TODO: Retries.
+    throw new Error(`Failed to find ${CSS_SELECTOR} on ${next.url}`);
+  }
+  if (next.url.includes('/chart/')) {
+    while (true) {
+      const fullSvg = await element.$('svg');
+      if (fullSvg) {
+        const width = await tab.evaluate(
+          svg => svg.getAttribute('width'),
+          fullSvg,
+        );
+        if (width !== '0') {
+          break;
+        }
+      }
+      tab.waitFor(50);
+    }
+  }
+  const filePath = path.join(OUTPUT_DIR, next.filename + '.png');
+  await fs.ensureDir(path.join(filePath, '..'));
+  await element.screenshot({
+    path: filePath,
+  });
+
+  // Kick off next screenshot.
+  await takeScreenshots(screenshots, tab);
+}

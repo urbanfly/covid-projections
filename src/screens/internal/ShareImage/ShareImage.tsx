@@ -4,7 +4,13 @@ import ShareCardImage from './ShareCardImage';
 import ChartShareImage from './ChartShareImage';
 import ChartExportImage from './ChartExportImage';
 
-export default function ShareImage({ match }: RouteComponentProps<{}>) {
+export default function ShareImage({
+  history,
+  match,
+}: RouteComponentProps<{}>) {
+  // HACK: Lets the screenshot script navigate between pages without doing a full refresh.
+  (window as any).reactHistory = history;
+
   return (
     <Switch>
       <Route exact path={`${match.path}`} component={ShareCardImage} />
