@@ -29,6 +29,9 @@ const OUTPUT_DIR = path.join(__dirname, 'output');
 const TABS = 4;
 // How long (ms) to wait for the expected div to render in the browser.
 const TIMEOUT = 90 * 1000;
+// We use history.push() instead of doing a full page reload normally, but tabs
+// seem to slow down eventually, so we periodically do a fresh page load.
+const SCREENSHOTS_BETWEEN_RELOADS = 100;
 // How many times to retry after any failure.
 const RETRIES = 2;
 
@@ -38,10 +41,6 @@ const EXPORT_OUTPUT_SIZE = '2400x1350';
 // The export image is 2400x1350.  Make sure the browser is plenty bigger.
 const BROWSER_WIDTH = 2800;
 const BROWSER_HEIGHT = 1575;
-
-const BLACKLISTED_COUNTIES = [
-  '11001', // DC - We treat it as a state, not a county.
-];
 
 interface Screenshot {
   url: string;
@@ -172,16 +171,22 @@ function addScreenshotsForLocation(
 async function takeScreenshots(
   screenshots: Screenshot[],
   tab: puppeteer.Page,
+  screenshotsUntilReload: number = 0,
 ): Promise<void> {
   const next = screenshots.pop();
   if (!next) {
     return;
   }
   console.log(`Screenshotting ${next.url} [${screenshots.length} left]`);
-  if (!tab.url().includes('/internal/share-image')) {
+  if (
+    !tab.url().includes('/internal/share-image') ||
+    screenshotsUntilReload === 0
+  ) {
+    screenshotsUntilReload = SCREENSHOTS_BETWEEN_RELOADS;
     const url = urlJoin(ROOT_URL, URL_PREFIX, next.url);
     await tab.goto(url);
   } else {
+    screenshotsUntilReload--;
     const url = urlJoin(URL_PREFIX, next.url);
     const windowHandle = await tab.evaluateHandle('window');
     await tab.evaluate(
@@ -221,5 +226,5 @@ async function takeScreenshots(
   });
 
   // Kick off next screenshot.
-  await takeScreenshots(screenshots, tab);
+  await takeScreenshots(screenshots, tab, screenshotsUntilReload);
 }
