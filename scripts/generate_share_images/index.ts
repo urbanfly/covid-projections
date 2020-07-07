@@ -24,6 +24,8 @@ const URL_PREFIX = '/internal/share-image';
 const CSS_SELECTOR = '.screenshot';
 const OUTPUT_DIR = path.join(__dirname, 'output');
 
+// Useful for debugging more quickly.
+const STATES_ONLY = false;
 // How many browser tabs to create and use for screenshots. 4 was optimal on my
 // laptop. TODO: Tune on Github.
 const TABS = 4;
@@ -48,7 +50,27 @@ interface Screenshot {
   outputSize: string;
 }
 
+let totalScreenshots = 0;
 let screenshotsDone = 0;
+let pendingScreenshots = [];
+const start = Date.now();
+setInterval(() => {
+  os.cpuUsage(v => {
+    const minutes = (Date.now() - start) / 1000 / 60;
+    const spm = (screenshotsDone / minutes).toFixed(2);
+    console.log(`Screenshots left: ${totalScreenshots - screenshotsDone}`);
+    console.log(`Avg Screenshots/min: ${spm}`);
+    console.log('Pending screenshots:', pendingScreenshots.join(', '));
+    console.log(
+      `CPU Usage (%): ${Math.floor(v * 100)} [total cores: ${os.cpuCount()}]`,
+    );
+    console.log(
+      `Memory Free: ${Math.floor(os.freemem())} / ${Math.floor(
+        os.totalmem(),
+      )}`,
+    );
+  });
+}, 60000);
 
 (async () => {
   await fs.ensureDir(OUTPUT_DIR);
@@ -56,7 +78,9 @@ let screenshotsDone = 0;
 
   console.log('Fetching projections...');
   const allStatesProjections = await fetchAllStateProjections();
-  const allCountiesProjections = await fetchAllCountyProjections();
+  const allCountiesProjections = STATES_ONLY
+    ? []
+    : await fetchAllCountyProjections();
   console.log('Fetch complete.');
 
   let screenshots = [] as Screenshot[];
@@ -87,25 +111,9 @@ let screenshotsDone = 0;
   }
 
   // For testing.
-  // screenshots = screenshots.slice(0, 43);
+  //screenshots = screenshots.slice(0, 43);
 
-  const start = Date.now();
-  setInterval(() => {
-    os.cpuUsage(v => {
-      const minutes = (Date.now() - start) / 1000 / 60;
-      const spm = (screenshotsDone / minutes).toFixed(2);
-      console.log(`Screenshots left: ${screenshots.length - screenshotsDone}`);
-      console.log(`Avg Screenshots/min: ${spm}`);
-      console.log(
-        `CPU Usage (%): ${Math.floor(v * 100)} [total cores: ${os.cpuCount()}]`,
-      );
-      console.log(
-        `Memory Free: ${Math.floor(os.freemem())} / ${Math.floor(
-          os.totalmem(),
-        )}`,
-      );
-    });
-  }, 60000);
+  totalScreenshots = screenshots.length;
 
   const browser = await puppeteer.launch({
     defaultViewport: {
@@ -172,6 +180,7 @@ async function takeScreenshots(
   screenshotsUntilReload: number = 0,
 ): Promise<void> {
   const next = screenshots.pop();
+  pendingScreenshots.push(next.url);
   if (!next) {
     return;
   }
@@ -222,6 +231,9 @@ async function takeScreenshots(
   await element.screenshot({
     path: filePath,
   });
+
+  pendingScreenshots = pendingScreenshots.filter(s => s !== next.url);
+  screenshotsDone++;
 
   // Kick off next screenshot.
   await takeScreenshots(screenshots, tab, screenshotsUntilReload);
