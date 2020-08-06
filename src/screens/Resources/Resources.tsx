@@ -25,7 +25,7 @@ const sidebar = (
     <SidebarLink href="#covid-response-simulator">
       COVID Response Simulator
     </SidebarLink>
-    <SidebarLink href="#model">SEIR Epidemiology Model</SidebarLink>
+    <SidebarLink href="#model">SIR Epidemiology Model</SidebarLink>
     <SidebarLink href="#api">API</SidebarLink>
     <SidebarLink href="#csv-files">CSV Files</SidebarLink>
     <SidebarLink href="#embed">Embed</SidebarLink>
@@ -60,8 +60,8 @@ const Resources = ({ children }: { children: React.ReactNode }) => {
             The COVID Response Simulator is a localized, spreadsheet version of
             the public Covid Act Now (CAN) model. With it, you can take a
             powerful{' '}
-            <ExternalLink href="https://en.wikipedia.org/wiki/Compartmental_models_in_epidemiology#The_SEIR_model">
-              SEIR epidemiology model
+            <ExternalLink href="https://en.wikipedia.org/wiki/Compartmental_models_in_epidemiology#The_SIR_model">
+              SIR epidemiology model
             </ExternalLink>{' '}
             and customize it for your county to help plan your response to
             COVID. The inputs and assumptions in the simulator are modifiable
@@ -161,7 +161,7 @@ const Resources = ({ children }: { children: React.ReactNode }) => {
             </i>
           </Typography>
           <SectionHeader variant="h4" component="h2" id="model">
-            SEIR Epidemiology Model
+            SIR Epidemiology Model
           </SectionHeader>
           <Typography variant="body1" component="p">
             Our model is open source and{' '}
