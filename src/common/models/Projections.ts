@@ -6,6 +6,7 @@ import { LEVEL_COLOR } from 'common/colors';
 import { fail } from 'common/utils';
 import { LocationSummary, MetricSummary } from 'common/location_summaries';
 import { RegionSummaryWithTimeseries } from 'api/schema/RegionSummaryWithTimeseries';
+import { getLocationUrlForFips } from 'common/locations';
 
 /**
  * The complete set of data / metrics and related information for a given
@@ -91,6 +92,32 @@ export class Projections {
       level: this.getAlarmLevel(),
       metrics,
     };
+  }
+
+  report(): void {
+    let icuHeadroom: Level = Level.LOW;
+    let otherHigh: Level = Level.LOW;
+    for (const metric of ALL_VALUE_METRICS) {
+      const level = this.getMetricLevel(metric);
+      if (metric === Metric.CONTACT_TRACING) {
+        continue; // it's whacky
+      } else if (metric === Metric.HOSPITAL_USAGE) {
+        icuHeadroom = level;
+      } else if (level !== Level.UNKNOWN && level > otherHigh) {
+        otherHigh = level;
+      }
+    }
+
+    if (icuHeadroom !== Level.UNKNOWN && icuHeadroom > otherHigh) {
+      const url = getLocationUrlForFips(this.fips);
+      const isActual = this.primary.icuHeadroomInfo!.covidPatientsIsActual;
+      console.log(
+        `${this.locationName} (${url})`,
+        Level[icuHeadroom],
+        Level[otherHigh],
+        isActual,
+      );
+    }
   }
 
   hasMetric(metric: Metric): boolean {

@@ -14,14 +14,32 @@ async function main() {
 
   const summaries = {} as { [fips: string]: LocationSummary };
 
+  let actuals = 0;
+  let modeled = 0;
   for (const stateProjections of allStatesProjections) {
     summaries[stateProjections.fips] = stateProjections.summary;
+    stateProjections.report();
+    const icu = stateProjections.primary.icuHeadroomInfo;
+    if (icu && icu.covidPatientsIsActual) {
+      actuals++;
+    } else if (icu) {
+      modeled++;
+    }
   }
 
   for (const countyProjections of allCountiesProjections) {
     summaries[countyProjections.fips] = countyProjections.summary;
+    countyProjections.report();
+    const icu = countyProjections.primary.icuHeadroomInfo;
+    if (icu && icu.covidPatientsIsActual) {
+      actuals++;
+    } else if (icu) {
+      modeled++;
+    }
   }
 
+  console.log('Modeled:', modeled);
+  console.log('Actuals:', actuals);
   const outputFolder = path.join(__dirname, '..', 'src', 'assets', 'data');
   await fs.writeJson(`${outputFolder}/summaries.json`, summaries);
 
