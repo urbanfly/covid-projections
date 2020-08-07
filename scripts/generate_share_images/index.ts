@@ -52,7 +52,7 @@ interface Screenshot {
 
 let totalScreenshots = 0;
 let screenshotsDone = 0;
-let pendingScreenshots = [];
+let pendingScreenshots: string[] = [];
 const start = Date.now();
 setInterval(() => {
   os.cpuUsage(v => {
@@ -65,9 +65,7 @@ setInterval(() => {
       `CPU Usage (%): ${Math.floor(v * 100)} [total cores: ${os.cpuCount()}]`,
     );
     console.log(
-      `Memory Free: ${Math.floor(os.freemem())} / ${Math.floor(
-        os.totalmem(),
-      )}`,
+      `Memory Free: ${Math.floor(os.freemem())} / ${Math.floor(os.totalmem())}`,
     );
   });
 }, 60000);
@@ -180,10 +178,10 @@ async function takeScreenshots(
   screenshotsUntilReload: number = 0,
 ): Promise<void> {
   const next = screenshots.pop();
-  pendingScreenshots.push(next.url);
   if (!next) {
     return;
   }
+  pendingScreenshots.push(next.url);
   console.log(`Screenshotting ${next.url} [${screenshots.length} left]`);
   if (
     !tab.url().includes('/internal/share-image') ||
