@@ -28,7 +28,7 @@ const OUTPUT_DIR = path.join(__dirname, 'output');
 const STATES_ONLY = false;
 // How many browser tabs to create and use for screenshots. 4 was optimal on my
 // laptop. TODO: Tune on Github.
-const TABS = 4;
+const TABS = 40;
 // How long (ms) to wait for the expected div to render in the browser.
 const TIMEOUT = 90 * 1000;
 // We use history.push() instead of doing a full page reload normally, but tabs
