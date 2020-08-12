@@ -11,6 +11,7 @@ import {
 import { ICUHeadroomInfo, calcICUHeadroom } from './ICUHeadroom';
 import { lastValue, indexOfLastValue } from './utils';
 import { assert } from 'common/utils';
+import { INTERVENTIONS } from 'common/interventions';
 
 /**
  * We truncate (or in the case of charts, switch to a dashed line) the last
@@ -250,6 +251,23 @@ export class Projection {
     const disableRt = false;
     this.rtRange = disableRt ? [null] : this.calcRtRange(timeseries);
     this.testPositiveRate = this.calcTestPositiveRate();
+    if (
+      this.intervention === INTERVENTIONS.PROJECTED &&
+      lastValue(this.testPositiveRate) != null
+    ) {
+      const start = _.findIndex(this.testPositiveRate, r => r !== null);
+      const end = _.findLastIndex(this.testPositiveRate, r => r !== null);
+      this.dates.forEach((date, i) => {
+        if (i >= start && i <= end) {
+          const d = date.toISOString().replace(/T.*$/, '');
+          let value = '' + this.testPositiveRate[i];
+          if (value === 'null') {
+            value = '';
+          }
+          console.log(`${d},${this.fips},${value}`);
+        }
+      });
+    }
 
     this.icuHeadroomInfo = calcICUHeadroom(
       this.stateName,
