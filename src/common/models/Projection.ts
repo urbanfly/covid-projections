@@ -65,7 +65,11 @@ export type DatasetId =
   | 'contractTracers'
   | 'caseDensityByCases'
   | 'caseDensityByDeaths'
-  | 'caseDensityRange';
+  | 'caseDensityRange'
+  | 'smoothedDailyCases'
+  | 'smoothedDailyDeaths'
+  | 'rawDailyCases'
+  | 'rawDailyDeaths';
 
 export interface RtRange {
   /** The actual Rt value. */
@@ -144,6 +148,8 @@ export class Projection {
   private readonly caseDensityRange: Array<CaseDensityRange | null>;
   private readonly smoothedDailyDeaths: Array<number | null>;
 
+  private readonly rawDailyCases: Array<number | null>;
+  private readonly rawDailyDeaths: Array<number | null>;
   constructor(
     summaryWithTimeseries: RegionSummaryWithTimeseries,
     parameters: ProjectionParameters,
@@ -209,7 +215,10 @@ export class Projection {
     this.smoothedDailyCases = this.smoothWithRollingAverage(
       this.deltasFromCumulatives(cumulativeConfirmedCases),
     );
-
+    this.rawDailyCases = this.deltasFromCumulatives(cumulativeConfirmedCases);
+    this.rawDailyDeaths = this.deltasFromCumulatives(
+      actualTimeseries.map(row => row && row.cumulativeDeaths),
+    );
     this.cumulativeActualDeaths = this.smoothCumulatives(
       actualTimeseries.map(row => row && row.cumulativeDeaths),
     );
