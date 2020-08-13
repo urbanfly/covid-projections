@@ -5,16 +5,22 @@ import ExploreTabs from './ExploreTabs';
 import ExploreChart from './ExploreChart';
 import * as Styles from './Explore.style';
 import { ParentSize } from '@vx/responsive';
-import { ExploreMetric } from './interfaces';
+import { ExploreMetric, Scale } from './interfaces';
 import { getMetricLabels, getSeries } from './utils';
+import ScaleSelector from './ScaleSelector';
 
 const Explore: React.FunctionComponent<{ projection: Projection }> = ({
   projection,
 }) => {
   const [currentMetric, setCurrentMetric] = useState(ExploreMetric.CASES);
+  const [scaleType, setScaleType] = useState(Scale.LINEAR);
 
   const onChangeTab = (event: React.ChangeEvent<{}>, newMetric: number) => {
     setCurrentMetric(newMetric);
+  };
+
+  const onChangeScale = (event: React.ChangeEvent<{ value: unknown }>) => {
+    setScaleType(event.target.value as Scale);
   };
 
   const metricLabels = getMetricLabels();
@@ -36,11 +42,21 @@ const Explore: React.FunctionComponent<{ projection: Projection }> = ({
         onChangeTab={onChangeTab}
       />
       <Styles.ChartContainer>
-        <ParentSize>
-          {({ width }) => (
-            <ExploreChart series={series} width={width} height={400} />
-          )}
-        </ParentSize>
+        <Styles.ChartControls>
+          <ScaleSelector scale={scaleType} onChange={onChangeScale} />
+        </Styles.ChartControls>
+        <div>
+          <ParentSize>
+            {({ width }) => (
+              <ExploreChart
+                series={series}
+                width={width}
+                height={400}
+                scaleType={scaleType}
+              />
+            )}
+          </ParentSize>
+        </div>
       </Styles.ChartContainer>
     </Styles.Container>
   );

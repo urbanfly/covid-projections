@@ -5,6 +5,11 @@ export enum ChartType {
   BAR,
 }
 
+export enum Scale {
+  LINEAR,
+  LOG,
+}
+
 export interface Series {
   data: Column[];
   type: ChartType;
