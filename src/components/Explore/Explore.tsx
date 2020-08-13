@@ -5,7 +5,8 @@ import ExploreTabs from './ExploreTabs';
 import ExploreChart from './ExploreChart';
 import * as Styles from './Explore.style';
 import { ParentSize } from '@vx/responsive';
-import { ChartType, Series } from './interfaces';
+import { ChartType, Series, Scale } from './interfaces';
+import ScaleSelector from './ScaleSelector';
 
 // TODO(pablo): Create enums and unify with metrics
 const tabLabels = [
@@ -19,9 +20,14 @@ const Explore: React.FunctionComponent<{ projection: Projection }> = ({
   projection,
 }) => {
   const [tabIndex, setTabIndex] = useState(1);
+  const [scaleType, setScaleType] = useState(Scale.LINEAR);
 
   const onChangeTab = (event: React.ChangeEvent<{}>, newTabIndex: number) => {
     setTabIndex(newTabIndex);
+  };
+
+  const onChangeScale = (event: React.ChangeEvent<{ value: unknown }>) => {
+    setScaleType(event.target.value as Scale);
   };
 
   const rawData: Series = {
@@ -50,15 +56,21 @@ const Explore: React.FunctionComponent<{ projection: Projection }> = ({
         onChangeTab={onChangeTab}
       />
       <Styles.ChartContainer>
-        <ParentSize>
-          {({ width }) => (
-            <ExploreChart
-              series={[rawData, smoothedData]}
-              width={width}
-              height={400}
-            />
-          )}
-        </ParentSize>
+        <Styles.ChartControls>
+          <ScaleSelector scale={scaleType} onChange={onChangeScale} />
+        </Styles.ChartControls>
+        <div>
+          <ParentSize>
+            {({ width }) => (
+              <ExploreChart
+                series={[rawData, smoothedData]}
+                width={width}
+                height={400}
+                scaleType={scaleType}
+              />
+            )}
+          </ParentSize>
+        </div>
       </Styles.ChartContainer>
     </Styles.Container>
   );

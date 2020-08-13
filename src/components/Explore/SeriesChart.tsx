@@ -1,6 +1,6 @@
 import React, { FunctionComponent } from 'react';
 import { LinePath } from '@vx/shape';
-import * as Style from './Explore.style';
+import * as Styles from './Explore.style';
 import { ChartType } from './interfaces';
 import { Column } from 'common/models/Projection';
 import BarChart from 'components/Charts/BarChart';
@@ -16,15 +16,15 @@ const SeriesChart: FunctionComponent<{
   switch (type) {
     case ChartType.LINE:
       return (
-        <Style.MainSeriesLine>
+        <Styles.MainLineSeries>
           <LinePath data={data} x={x} y={y} />
-        </Style.MainSeriesLine>
+        </Styles.MainLineSeries>
       );
     case ChartType.BAR:
       return (
-        <Style.BarsSeries>
+        <Styles.BarsSeries>
           <BarChart data={data} x={x} y={y} yMax={yMax} barWidth={barWidth} />
-        </Style.BarsSeries>
+        </Styles.BarsSeries>
       );
   }
 };

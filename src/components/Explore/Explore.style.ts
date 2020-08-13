@@ -1,6 +1,7 @@
 import styled from 'styled-components';
 import MuiTab from '@material-ui/core/Tab';
 import MuiTabs from '@material-ui/core/Tabs';
+import { Typography } from '@material-ui/core';
 import theme from 'assets/theme';
 
 /** Gets the chart palette based on the current theme. */
@@ -12,26 +13,25 @@ function palette(props: any) {
 const lightBlue = '#00BFEA';
 
 export const Container = styled.div`
-  /* TODO(pablo): Get from theme */
-  margin-bottom: 20px;
+  margin-bottom: ${theme.spacing(4)}px;
 `;
 
-// Header
+// HEADER
 export const Header = styled.div`
-  /* TODO(pablo): Use spacing from the theme */
-  margin-bottom: 40px;
+  margin-bottom: ${theme.spacing(3)}px;
+  /* TODO(pablo): Move the style to the corresponding element */
+  .MuiTypography-h4 {
+    margin-bottom: ${theme.spacing(1)}px;
+  }
 `;
 
-export const Subtitle = styled.div`
-  /* TODO(pablo): Move subtitle to the theme, use typography */
-  font-family: Roboto;
-  font-style: normal;
-  font-weight: 500;
-  font-size: 12px;
-  line-height: 14px;
-  letter-spacing: 0.03em;
+export const Subtitle = styled(Typography)`
   text-transform: uppercase;
-  color: #828282;
+  line-height: 1.125rem;
+  font-size: 0.875rem;
+  font-weight: normal;
+  letter-spacing: 0.05em;
+  color: ${theme.palette.grey[500]};
 `;
 
 export const Tabs = styled(MuiTabs)`
@@ -39,6 +39,7 @@ export const Tabs = styled(MuiTabs)`
     /* TODO(pablo): Get from theme */
     background-color: ${lightBlue};
   }
+  border-bottom: solid 1px ${theme.palette.grey[300]};
 `;
 
 export const Tab = styled(MuiTab)`
@@ -56,13 +57,18 @@ export const Tab = styled(MuiTab)`
   }
 `;
 
+// CHART CONTAINER
 export const ChartContainer = styled.div`
-  /* TODO (pablo): Get from theme */
-  margin-top: 30px;
+  margin-top: ${theme.spacing(3)}px;
 `;
 
-// Chart
-export const MainSeriesLine = styled.g`
+// CHART CONTROLS
+export const ChartControls = styled.div`
+  margin-bottom: ${theme.spacing(3)}px;
+`;
+
+// CHART
+export const MainLineSeries = styled.g`
   line,
   path {
     fill: none;
