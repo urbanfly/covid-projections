@@ -43,7 +43,6 @@ const USACountyMap = ({ stateClickHandler, setTooltipContent, condensed }) => {
                   <Link
                     key={stateCode}
                     to={`/us/${stateCode.toLowerCase()}`}
-                    title={name}
                     aria-label={name}
                   >
                     <Geography
