@@ -212,6 +212,9 @@ const LocationTable: React.FunctionComponent<{
 
   const showStateCode = allCountiesView || geoScope === GeoScopeFilter.NEARBY;
 
+  const currentLocationRank = pinnedLocation?.rank;
+  const pinnedLocationNotRankedFirst = currentLocationRank !== 1;
+
   return (
     <Styles.TableContainer isModal={isModal}>
       <Container finalHeaderOffset={finalHeaderOffset}>
@@ -232,7 +235,7 @@ const LocationTable: React.FunctionComponent<{
             allCountiesView={allCountiesView}
             isHomepage={isHomepage}
           />
-          {isModal && pinnedLocation && (
+          {isModal && pinnedLocation && pinnedLocationNotRankedFirst && (
             <Table key="table-pinned-location">
               <TableBody>
                 <CompareTableRow
@@ -251,7 +254,7 @@ const LocationTable: React.FunctionComponent<{
           <LocationTableBody
             sorter={sorter}
             sortedLocations={visibleLocations}
-            currentLocationRank={pinnedLocation?.rank}
+            currentLocationRank={currentLocationRank}
             sortByPopulation={sortByPopulation}
             isHomepage={isHomepage}
             showStateCode={showStateCode}
